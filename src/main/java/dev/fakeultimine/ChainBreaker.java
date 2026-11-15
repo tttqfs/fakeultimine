@@ -69,12 +69,23 @@ public final class ChainBreaker {
 			return true;
 		}
 		BotSettings settings = BotRegistry.enabledFor(serverPlayer);
-		if (settings == null || settings.damagesTool()) {
+		if (settings == null) {
 			return true;
 		}
-		ItemStack tool = serverPlayer.getMainHandStack();
-		if (!tool.isEmpty()) {
-			SAVED_TOOL_DAMAGE.put(serverPlayer.getUuid(), tool.getDamage());
+		// only 模式：不是白名单里的方块，连挖都不让挖
+		BlockFilter blockFilter = settings.filter();
+		if (blockFilter.mode() == BlockFilter.Mode.ONLY && !blockFilter.matches(state)) {
+			if (FakeUltimine.config().debug) {
+				FakeUltimine.LOGGER.info("{}假人 {} 试图挖不在白名单里的 {}，已阻止",
+						LOG_PREFIX, serverPlayer.getGameProfile().getName(), state.getBlock());
+			}
+			return false;
+		}
+		if (!settings.damagesTool()) {
+			ItemStack tool = serverPlayer.getMainHandStack();
+			if (!tool.isEmpty()) {
+				SAVED_TOOL_DAMAGE.put(serverPlayer.getUuid(), tool.getDamage());
+			}
 		}
 		return true;
 	}
@@ -91,6 +102,13 @@ public final class ChainBreaker {
 			if (BotRegistry.onCooldown(serverPlayer)) {
 				return;
 			}
+			BlockFilter blockFilter = settings.filter();
+			if (blockFilter.mode() == BlockFilter.Mode.ONLY && !blockFilter.matches(state)) {
+				return;
+			}
+			if (blockFilter.mode() == BlockFilter.Mode.EXCEPT && blockFilter.matches(state)) {
+				return;
+			}
 			int max = settings.maxOrDefault();
 			if (max <= 1) {
 				return;
@@ -100,14 +118,14 @@ public final class ChainBreaker {
 				return;
 			}
 			Direction direction = facing(serverPlayer, pos);
-			Predicate<BlockPos> filter = target -> canBreak(serverWorld, serverPlayer, target, state, settings);
-			List<BlockPos> targets = shape.collect(pos, direction, max - 1, filter);
+			Predicate<BlockPos> targetFilter = target -> canBreak(serverWorld, serverPlayer, target, state, settings, blockFilter);
+			List<BlockPos> targets = shape.collect(pos, direction, max - 1, targetFilter);
 			if (targets.isEmpty()) {
 				return;
 			}
 
 			BotRegistry.markChained(serverPlayer);
-			int broken = chainBreak(serverWorld, serverPlayer, pos, state, settings, targets);
+			int broken = chainBreak(serverWorld, serverPlayer, pos, state, settings, targets, blockFilter);
 			if (FakeUltimine.config().debug) {
 				FakeUltimine.LOGGER.info("{}假人 {} 用【{}】连锁 {} 个方块，起点 {}，维度 {}",
 						LOG_PREFIX, serverPlayer.getGameProfile().getName(), shape.id(), broken + 1, pos.toShortString(),
@@ -124,7 +142,7 @@ public final class ChainBreaker {
 	 * 执行连锁破坏，返回额外挖掉的方块数量。
 	 */
 	private static int chainBreak(ServerWorld world, ServerPlayerEntity player, BlockPos origin, BlockState originState,
-								  BotSettings settings, List<BlockPos> targets) {
+								  BotSettings settings, List<BlockPos> targets, BlockFilter blockFilter) {
 		UltimineConfig cfg = FakeUltimine.config();
 		boolean drops = settings.drops();
 		boolean damageTool = settings.damagesTool();
@@ -134,6 +152,9 @@ public final class ChainBreaker {
 			budgetTick = tick;
 			budgetUsed = 0;
 		}
+
+		// 空手也能连锁：只有“本来拿着工具、中途被挖断”才停止
+		boolean hadTool = !player.getMainHandStack().isEmpty();
 
 		int broken = 0;
 		chaining = true;
@@ -150,12 +171,12 @@ public final class ChainBreaker {
 				}
 
 				ItemStack tool = player.getMainHandStack();
-				if (tool.isEmpty()) {
+				if (hadTool && tool.isEmpty()) {
 					break;
 				}
-				int damageBefore = tool.getDamage();
+				int damageBefore = tool.isEmpty() ? 0 : tool.getDamage();
 
-				if (!canBreak(world, player, target, originState, settings)) {
+				if (!canBreak(world, player, target, originState, settings, blockFilter)) {
 					continue;
 				}
 
@@ -178,7 +199,7 @@ public final class ChainBreaker {
 						after.setDamage(Math.min(damageBefore, Math.max(0, after.getMaxDamage() - 1)));
 					}
 				}
-				if (player.getMainHandStack().isEmpty()) {
+				if (hadTool && player.getMainHandStack().isEmpty()) {
 					break;
 				}
 			}
@@ -192,7 +213,7 @@ public final class ChainBreaker {
 	 * 单个方块是否允许连锁破坏。
 	 */
 	private static boolean canBreak(ServerWorld world, ServerPlayerEntity player, BlockPos target,
-									BlockState originState, BotSettings settings) {
+									BlockState originState, BotSettings settings, BlockFilter blockFilter) {
 		UltimineConfig cfg = FakeUltimine.config();
 		if (world.isOutOfHeightLimit(target)) {
 			return false;
@@ -201,9 +222,25 @@ public final class ChainBreaker {
 		if (state.isAir()) {
 			return false;
 		}
-		// 只连锁“同一种方块”
-		if (!state.isOf(originState.getBlock())) {
-			return false;
+		switch (blockFilter.mode()) {
+			case ONLY -> {
+				// only 模式：只连锁白名单里的方块（可以是多种，配合 #标签 效果更好）
+				if (!blockFilter.matches(state)) {
+					return false;
+				}
+			}
+			case EXCEPT -> {
+				// except 模式：仍然只连锁同种方块，并且跳过黑名单里的方块
+				if (!state.isOf(originState.getBlock()) || blockFilter.matches(state)) {
+					return false;
+				}
+			}
+			default -> {
+				// 只连锁“同一种方块”
+				if (!state.isOf(originState.getBlock())) {
+					return false;
+				}
+			}
 		}
 		// 基岩之类硬度为 -1 的方块永远不连锁
 		if (state.getHardness(world, target) < 0.0F) {

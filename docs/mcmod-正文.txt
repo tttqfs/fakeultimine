@@ -1,0 +1,149 @@
+假人连锁破坏（FakePlayer Ultimine）
+
+【模组简介】
+给地毯（Carpet）/ GCA 假人加上 FTB Ultimine 式连锁破坏能力的 Fabric 附属模组。
+用一条指令开关，服务端安装即可，客户端不需要额外安装任何东西。
+
+【功能特性】
+1、假人挖方块时，自动把周围同一种方块一起挖掉，形状可选；
+2、支持 7 种形状：3×3×3 立方体、5×5×5 立方体、3×3 平面、5×5 平面、3×3 隧道、1×1 直线、同类连通矿脉；
+3、每个假人单独开关，可分别设置形状、单次上限、是否掉落、是否消耗耐久、是否要求正确工具；
+4、设置按假人名字保存在 config/fakeultimine.json，重启服务器、假人重新上线都不会丢失；
+5、安装了 FTB Ultimine 时，自动遵守它的 ftbultimine:excluded_blocks 方块标签；
+6、自带黑名单标签 fakeultimine:blacklist，默认不连锁基岩、屏障、命令方块、刷怪笼等方块；
+7、防卡服设计：单次上限、单假人冷却、全服每刻破坏预算、世界边界与高度检查。
+
+【安装方法】
+1、安装 Minecraft 1.21.1 对应的 Fabric Loader（Java 21）；
+2、安装 Fabric API（0.100 及以上版本）；
+3、将 fakeultimine-1.0.0.jar 放入 mods 文件夹；
+4、安装 Carpet（地毯）或 GCA（gugle-carpet-addition），用于生成假人；
+5、启动游戏或服务器，日志出现「假人连锁破坏 v1.0.0 已加载」即安装成功。
+
+【快速上手】
+/player Steve spawn
+/item replace entity Steve weapon.mainhand with minecraft:diamond_pickaxe
+/fakeultimine on Steve
+/player Steve attack continuous
+/player Steve stop
+
+说明：
+地毯的挖掘动作是 attack（左键），use 是右键，没有 mine 这个动作；
+指令中的假人需要在线才能被指定。
+
+【指令列表】
+/fakeultimine on 假人        开启该假人的连锁破坏
+/fakeultimine off 假人       关闭
+/fakeultimine toggle 假人    切换
+/fakeultimine all true       一键开关当前所有在线假人
+/fakeultimine list           列出已开启的假人
+/fakeultimine status 假人    查看全局或单个假人的配置
+/fakeultimine shape 假人 形状  设置连锁形状
+/fakeultimine max 假人 数量   设置单次连锁最多破坏多少方块
+/fakeultimine drop 假人 true  连锁部分是否掉落物品
+/fakeultimine durability 假人 true  是否消耗工具耐久
+/fakeultimine tool 假人 true  是否要求手持正确工具
+/fakeultimine shapes         查看所有形状
+/fakeultimine reload         重载配置文件
+/fakeultimine prune          清理已关闭的假人记录
+/fakeultimine help           查看帮助
+
+/fakeultimine 与 /ful 完全等价，指令需要权限等级 2（OP），可在配置文件中修改。
+
+【连锁形状】
+cube3      3×3×3 立方体，默认形状，适合通用挖矿
+cube5      5×5×5 立方体，适合快速清场，注意上限
+plane3     与挖掘方向垂直的 3×3 平面，适合挖墙、平整
+plane5     5×5 平面，适合大面积平整
+tunnel     3×3 截面隧道，沿挖掘方向延伸，适合假人挖矿道
+line       1×1 直线，适合钻孔、垂直向下
+vein       同类方块连通矿脉，适合挖钻石、砍树
+
+形状的朝向取假人的视线方向。
+
+【方块过滤】
+可以限制假人只对某些方块生效，用两种模式控制：
+
+一、only 模式（只挖指定方块）
+/fakeultimine only Steve minecraft:oak_log
+假人只会挖、只会连锁橡木原木，其它方块连挖都挖不动（石头、泥土等一律不碰）。
+重复执行同一条指令可以继续往列表里加方块。
+用 /fakeultimine filter Steve clear 取消限制。
+
+二、except 模式（保护指定方块）
+/fakeultimine except Steve minecraft:oak_log
+假人照常挖任何方块，但不会连锁橡木原木，也就是说橡木原木被保护起来。
+
+三、按方块标签限制
+/fakeultimine onlytag Steve minecraft:logs
+把「所有原木」一起纳入限制，橡木、云杉、白桦等不同木种可以一起连锁。
+常用标签：minecraft:logs（所有原木）、minecraft:planks（木板）、minecraft:leaves（树叶）、
+minecraft:diamond_ores（钻石矿）、c:ores（所有矿物，需模组支持）。
+
+注意事项：
+1、only 模式下假人对列表外的方块完全不动，适合做「只砍树」「只挖钻石矿」的专用机器人；
+2、except 模式适合保护某些方块，比如不让假人连锁掉建筑上的原木；
+3、限制会写入配置文件，假人掉线重进、服务器重启后依然有效；
+4、用 /fakeultimine filter 假人 list 可以随时查看当前限制。
+
+【配置文件】
+路径为 config/fakeultimine.json，首次启动自动生成，修改后执行 /fakeultimine reload 即可生效。
+
+permissionLevel     使用指令所需的最低权限等级，默认 2
+maxBlocks           单次连锁上限（含被挖掉的那个方块），默认 64
+maxBlocksPerTick    全服每个游戏刻最多额外破坏多少方块，默认 512，用于防卡服
+cooldownTicks       同一个假人两次连锁的最小间隔（刻），默认 4，0 表示每次挖掘都连锁
+defaultShape        新假人的默认形状，默认 cube3
+requireCorrectTool  是否要求手持正确工具，默认 false
+dropItems           连锁破坏是否掉落物品，默认 true
+damageTool          是否消耗工具耐久，默认 true
+allowRealPlayers    是否允许给真实玩家开启，默认 false
+respectBlacklist    是否遵守本模组的 blacklist 方块标签，默认 true
+respectUltimineTags 是否遵守 FTB Ultimine 的 excluded_blocks 标签，默认 true
+debug               调试模式，每次连锁向日志输出一行，默认 false
+bots                每个假人的独立设置，按假人名字保存
+
+【使用建议】
+1、假人挖矿道：形状设为 tunnel，上限 64，耐久设为 false，适合长时间挂机；
+2、假人挖矿脉或砍树：形状设为 vein，只吃连通的同类方块，不会误伤旁边的方块；
+3、大面积平整：形状设为 plane5，上限 25；
+4、多个假人同时开启高连锁时，建议把 cooldownTicks 调到 10 以上。
+
+【注意事项】
+1、默认只连锁同一种方块，原方块是石头就只连锁石头，不会碰旁边的矿石或木头；
+   用 only 过滤后放宽为「列表里的方块都算」，用 except 过滤则额外跳过被保护的方块；
+2、触发点在原方块被真正挖掉之后，所以原方块的掉落、经验、工具消耗仍由原版处理；
+3、硬度为 -1 的方块（基岩、屏障等）、世界边界外、高度限制外的方块永远不会被连锁；
+4、假人空手也能连锁，只是第一块要徒手慢慢挖（石头约 7.5 秒），挖掉第一块后其余方块瞬间连锁；
+   如果原本拿着工具、挖到一半工具断了，连锁会立即停止；想强制要求手持工具可用 /fakeultimine tool 假人 true；
+5、durability 设为 false 时，该假人挖方块完全不掉耐久，连锁方块和它亲手挖的那块都不掉；
+6、假人处于创造模式时也能使用，但创造模式本身不掉落物品。
+
+【常见问题】
+问：/fakeultimine on 提示不是假人？
+答：该玩家是真实玩家。请使用 /player 名字 spawn 生成的假人，或在配置文件中把 allowRealPlayers 改为 true。
+
+问：开启后假人挖方块没有连锁？
+答：依次检查周围是否有同种方块、方块是否在黑名单或被 only/except 过滤掉、假人是否在其他维度；
+空手也能用，只是第一块要徒手慢慢挖（泥土约 0.75 秒、石头约 7.5 秒），等第一块挖掉后才会瞬间连锁。
+把配置文件中的 debug 改为 true 后，可以在日志中看到每次连锁的记录。
+
+问：会和 FTB Ultimine 冲突吗？
+答：不会。真实玩家照旧使用 FTB Ultimine 的按键连锁，本模组只处理被开启的假人。
+
+问：服务器会不会卡？
+答：默认单次 64 格、冷却 4 刻、全服每刻 512 格的设置比较保守，假人较多时建议把冷却调大。
+
+【测试环境】
+Minecraft 1.21.1、Fabric Loader 0.16.10、Fabric API 0.102.0、Carpet 1.4.147、GCA 2.12.10。
+
+测试结果：
+开启连锁后假人挖 3×3×3 石头，约 2 秒内 27 个方块全部消失；同条件关闭连锁时 2 秒只挖掉 3 个；
+tunnel 形状配合上限 64，一次挖掉 63 个额外方块；
+掉落、耐久、工具要求、重启后设置恢复等均测试通过。
+
+【开源与反馈】
+本模组以 MIT 协议开源，源码、问题反馈与更新日志见 GitHub 仓库：
+https://github.com/tttqfs/fakeultimine
+
+下载地址见本页「相关链接」。

@@ -10,11 +10,14 @@ import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
+import net.minecraft.command.argument.IdentifierArgumentType;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +41,37 @@ public final class FakeUltimineCommand {
 
 	private static final SuggestionProvider<ServerCommandSource> SHAPES = (context, builder) ->
 			CommandSource.suggestMatching(ShapeType.ids(), builder);
+
+	private static final SuggestionProvider<ServerCommandSource> BLOCK_IDS = (context, builder) -> {
+		List<String> ids = new ArrayList<>();
+		for (Identifier id : Registries.BLOCK.getIds()) {
+			ids.add(id.toString());
+		}
+		return CommandSource.suggestMatching(ids, builder);
+	};
+
+	private static final SuggestionProvider<ServerCommandSource> BLOCK_TAGS = (context, builder) ->
+			CommandSource.suggestMatching(List.of(
+					"minecraft:logs",
+					"minecraft:logs_that_burn",
+					"minecraft:planks",
+					"minecraft:leaves",
+					"minecraft:flowers",
+					"minecraft:stone_bricks",
+					"minecraft:base_stone_overworld",
+					"minecraft:dirt",
+					"minecraft:sand",
+					"minecraft:coal_ores",
+					"minecraft:iron_ores",
+					"minecraft:gold_ores",
+					"minecraft:diamond_ores",
+					"minecraft:emerald_ores",
+					"minecraft:redstone_ores",
+					"minecraft:lapis_ores",
+					"minecraft:copper_ores",
+					"c:ores",
+					"c:stones"
+			), builder);
 
 	private FakeUltimineCommand() {
 	}
@@ -101,6 +135,35 @@ public final class FakeUltimineCommand {
 						.suggests(FAKE_PLAYERS)
 						.then(CommandManager.argument("enabled", BoolArgumentType.bool())
 								.executes(FakeUltimineCommand::setRequireTool))));
+		root.then(CommandManager.literal("only")
+				.then(CommandManager.argument("player", EntityArgumentType.player())
+						.suggests(FAKE_PLAYERS)
+						.then(CommandManager.argument("block", IdentifierArgumentType.identifier())
+								.suggests(BLOCK_IDS)
+								.executes(context -> setFilter(context, BlockFilter.Mode.ONLY, false)))));
+		root.then(CommandManager.literal("except")
+				.then(CommandManager.argument("player", EntityArgumentType.player())
+						.suggests(FAKE_PLAYERS)
+						.then(CommandManager.argument("block", IdentifierArgumentType.identifier())
+								.suggests(BLOCK_IDS)
+								.executes(context -> setFilter(context, BlockFilter.Mode.EXCEPT, false)))));
+		root.then(CommandManager.literal("onlytag")
+				.then(CommandManager.argument("player", EntityArgumentType.player())
+						.suggests(FAKE_PLAYERS)
+						.then(CommandManager.argument("tag", IdentifierArgumentType.identifier())
+								.suggests(BLOCK_TAGS)
+								.executes(context -> setFilter(context, BlockFilter.Mode.ONLY, true)))));
+		root.then(CommandManager.literal("excepttag")
+				.then(CommandManager.argument("player", EntityArgumentType.player())
+						.suggests(FAKE_PLAYERS)
+						.then(CommandManager.argument("tag", IdentifierArgumentType.identifier())
+								.suggests(BLOCK_TAGS)
+								.executes(context -> setFilter(context, BlockFilter.Mode.EXCEPT, true)))));
+		root.then(CommandManager.literal("filter")
+				.then(CommandManager.argument("player", EntityArgumentType.player())
+						.suggests(FAKE_PLAYERS)
+						.then(CommandManager.literal("list").executes(FakeUltimineCommand::listFilter))
+						.then(CommandManager.literal("clear").executes(FakeUltimineCommand::clearFilter))));
 		root.then(CommandManager.literal("reload").executes(FakeUltimineCommand::reload));
 		root.then(CommandManager.literal("prune").executes(FakeUltimineCommand::prune));
 		return root;
@@ -118,6 +181,10 @@ public final class FakeUltimineCommand {
 		source.sendFeedback(() -> Text.literal("§e/ful drop <假人> <true|false> §7是否掉落物品"), false);
 		source.sendFeedback(() -> Text.literal("§e/ful durability <假人> <true|false> §7是否消耗工具耐久"), false);
 		source.sendFeedback(() -> Text.literal("§e/ful tool <假人> <true|false> §7是否要求手持正确工具"), false);
+		source.sendFeedback(() -> Text.literal("§e/ful only <假人> <方块> §7只挖、只连锁这个方块（可重复执行添加多个）"), false);
+		source.sendFeedback(() -> Text.literal("§e/ful except <假人> <方块> §7除这个方块外都能连锁"), false);
+		source.sendFeedback(() -> Text.literal("§e/ful onlytag|excepttag <假人> <标签> §7同上，但用方块标签，如 logs"), false);
+		source.sendFeedback(() -> Text.literal("§e/ful filter <假人> list|clear §7查看/取消方块限制"), false);
 		source.sendFeedback(() -> Text.literal("§e/ful reload §7重载 config/fakeultimine.json"), false);
 		source.sendFeedback(() -> Text.literal("§e/ful prune §7清理已关闭的假人记录"), false);
 		source.sendFeedback(() -> Text.literal("§7配置文件: §fconfig/fakeultimine.json"), false);
@@ -179,6 +246,72 @@ public final class FakeUltimineCommand {
 		source.sendFeedback(() -> Text.literal("§7  掉落: §f" + settings.drops()
 				+ " §7| 耗耐久: §f" + settings.damagesTool()
 				+ " §7| 需工具: §f" + settings.needsCorrectTool()), false);
+		BlockFilter filter = settings.filter();
+		source.sendFeedback(() -> Text.literal("§7  方块限制: §f" + (filter.isEmpty() ? "无（什么都挖、什么都连锁）"
+				: filter.mode().id() + " §7→ §f" + String.join("§7, §f", settings.filterBlocks))), false);
+		return 1;
+	}
+
+	private static int setFilter(CommandContext<ServerCommandSource> context, BlockFilter.Mode mode, boolean isTag) throws CommandSyntaxException {
+		ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
+		if (!checkTarget(context, player)) {
+			return 0;
+		}
+		Identifier id = IdentifierArgumentType.getIdentifier(context, isTag ? "tag" : "block");
+		String raw = isTag ? "#" + id : id.toString();
+		String entry = BlockFilter.canonicalize(raw);
+		if (entry == null) {
+			error(context, "无法识别的" + (isTag ? "方块标签 §f#" : "方块 id §f") + id
+					+ "§c，方块 id 例如 minecraft:oak_log，标签例如 minecraft:logs");
+			return 0;
+		}
+		String name = player.getGameProfile().getName();
+		BotSettings settings = BotRegistry.getOrCreate(name);
+		boolean switched = !mode.id().equals(settings.filterMode);
+		if (switched) {
+			settings.filterBlocks.clear();
+			settings.filterMode = mode.id();
+		}
+		if (settings.filterBlocks.stream().noneMatch(entry::equalsIgnoreCase)) {
+			settings.filterBlocks.add(entry);
+		}
+		FakeUltimine.config().save();
+
+		String modeText = mode == BlockFilter.Mode.ONLY
+				? "只挖、只连锁这些方块"
+				: "除了这些方块，其它方块都能连锁";
+		feedback(context, (switched ? "§7(已切换模式，旧列表已清空) " : "")
+				+ "§a假人 §f" + name + " §a的限制：§f" + modeText
+				+ " §7→ §f" + String.join("§7, §f", settings.filterBlocks));
+		return 1;
+	}
+
+	private static int listFilter(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+		ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
+		String name = player.getGameProfile().getName();
+		BotSettings settings = BotRegistry.get(name);
+		if (settings == null || settings.filter().isEmpty()) {
+			feedback(context, "§7假人 §f" + name + " §7当前没有方块限制（什么都挖、什么都连锁）");
+			return 1;
+		}
+		feedback(context, "§a假人 §f" + name + " §a的限制模式：§f" + settings.filterMode
+				+ " §7→ §f" + String.join("§7, §f", settings.filterBlocks));
+		return 1;
+	}
+
+	private static int clearFilter(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+		ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");
+		if (!checkTarget(context, player)) {
+			return 0;
+		}
+		String name = player.getGameProfile().getName();
+		BotSettings settings = BotRegistry.get(name);
+		if (settings != null) {
+			settings.filterMode = "off";
+			settings.filterBlocks.clear();
+			FakeUltimine.config().save();
+		}
+		feedback(context, "§a已取消假人 §f" + name + " §a的方块限制");
 		return 1;
 	}
 

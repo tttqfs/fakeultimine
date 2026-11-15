@@ -62,14 +62,15 @@
 
 ## 安装
 
-1. 安装 Fabric Loader（1.21.1）与 Fabric API。（确保全部前置安装成功）
+1. 安装 Fabric Loader（1.21.1）与 Fabric API（确保全部前置安装成功）。
 2. 把本模组的 jar 放进 `mods/`。
+3. 启动游戏或服务器，日志出现下面这行即成功：
 
+```
+[FakePlayerUltimine] 假人连锁破坏 v1.0.0 已加载（carpet: true, gca: true, ftbultimine: false）
+```
 
-
-
-
-
+> 单人游戏把 jar 放进整合包的 `mods/` 即可（集成服同样生效）；专用服务器只装服务端，客户端无需安装。
 
 ## 快速上手
 
@@ -104,6 +105,12 @@
 | `/ful max <假人> <1-4096>` | 单次连锁最多破坏多少方块 |
 | `/ful drop <假人> <true\|false>` | 连锁部分是否掉物品 |
 | `/ful durability <假人> <true\|false>` | 是否消耗工具耐久（false = 完全不磨损） |
+| `/ful only <假人> <方块>` | **只挖、只连锁这个方块**（重复执行可添加多个） |
+| `/ful except <假人> <方块>` | **除这个方块外都能连锁** |
+| `/ful onlytag <假人> <标签>` | 同 `only`，用方块标签，如 `minecraft:logs` |
+| `/ful excepttag <假人> <标签>` | 同 `except`，用方块标签 |
+| `/ful filter <假人> list` | 查看当前方块限制 |
+| `/ful filter <假人> clear` | 取消方块限制 |
 | `/ful tool <假人> <true\|false>` | 是否要求手持正确工具 |
 | `/ful shapes` | 列出所有形状 |
 | `/ful reload` | 重载 `config/fakeultimine.json` |
@@ -124,6 +131,40 @@
 
 形状朝向取假人的视线方向。
 
+## 方块过滤（only / except）
+
+想让假人只砍树、不碰别的方块，或者反过来保护某些方块，用这两条指令：
+
+```mcfunction
+# 1) 只挖、只连锁橡木原木 —— 别的方块连挖都挖不动
+/ful only Steve minecraft:oak_log
+
+# 2) 除了橡木原木，其它方块都能连锁 —— 原木被保护
+/ful except Steve minecraft:oak_log
+
+# 查看 / 取消
+/ful filter Steve list
+/ful filter Steve clear
+```
+
+- `only` 模式下，假人**不会破坏**列表以外的方块（连徒手挖都被拦下），只会对列表里的方块连锁；
+- `except` 模式下，假人照常挖任何方块，只是**不会连锁**列表里的方块；
+- 重复执行同一条指令可以继续往列表里加方块；
+- 用 `onlytag` / `excepttag` 可以按方块标签限制，比如 `#minecraft:logs` 会把橡木、云杉、白桦等所有原木一起算进去：
+
+```mcfunction
+/ful onlytag Steve minecraft:logs     # 只砍所有原木（不同木种也能一起连锁）
+/ful excepttag Steve minecraft:planks # 木板不连锁
+```
+
+当前限制会写进配置文件，假人重进服务器依然有效：
+
+```json
+"bots": {
+  "Steve": { "enabled": true, "filterMode": "only", "filterBlocks": ["minecraft:oak_log"] }
+}
+```
+
 ## 配置文件
 
 路径：`config/fakeultimine.json`（首次启动生成，改完 `/ful reload` 热重载）
@@ -143,7 +184,8 @@
   "respectUltimineTags": true,
   "debug": false,
   "bots": {
-    "Steve": { "enabled": true, "shape": "tunnel", "maxBlocks": 64 }
+    "Steve": { "enabled": true, "shape": "tunnel", "maxBlocks": 64,
+               "filterMode": "only", "filterBlocks": ["minecraft:oak_log"] }
   }
 }
 ```
@@ -161,16 +203,18 @@
 | `respectBlacklist` | 遵守本模组 `fakeultimine:blacklist` 标签 |
 | `respectUltimineTags` | 遵守 `ftbultimine:excluded_blocks` 标签 |
 | `debug` | 每次连锁往日志写一行 |
-| `bots` | 每个假人的独立设置，按名字保存 |
+| `bots` | 每个假人的独立设置，按名字保存；其中 `filterMode`（off/only/except）与 `filterBlocks` 是方块过滤 |
 
 黑名单标签：`data/fakeultimine/tags/block/blacklist.json`，默认含基岩、屏障、命令方块、刷怪笼等。
 
 ## 行为细节
 
-- **只挖同一种方块**：原方块是石头就只连锁石头，不碰旁边的矿石、木头。
+- **默认只挖同一种方块**：原方块是石头就只连锁石头，不碰旁边的矿石、木头。
+  用 `only` 过滤后放宽为「列表里的方块都算」，用 `except` 过滤则额外跳过被保护的方块。
 - **触发点在原方块被真正挖掉之后**，所以原方块的掉落、经验、工具消耗、统计仍由原版处理。
 - **永远不碰**：硬度 -1 的方块、世界边界外、高度限制外、黑名单方块。
-- **工具挖断即停止**，不会出现“无镐连锁”。
+- **空手也能连锁**：假人手上没有工具照样会连锁（只是第一块要徒手慢慢挖）；
+  只有「原本拿着工具、挖到一半工具断了」才会停止。想强制要求手持工具，用 `/ful tool <假人> true`。
 - `durability=false` 时该假人**完全不掉耐久**（连锁方块和它亲手挖的那块都不掉）。
 - 假人是创造模式也能用；`dropItems=true` 时创造模式仍不掉落（原版行为）。
 - 多个假人同 tick 连锁受 `maxBlocksPerTick` 约束。
@@ -178,7 +222,8 @@
 ## 常见问题
 
 **开了没反应？**
-依次检查：假人手上有没有工具、周围有没有同种方块、方块是否在黑名单、假人是否在别的维度、配置是否生效。
+依次检查：周围有没有同种方块、方块是否在黑名单 / 被 `only`/`except` 过滤掉、假人是否在别的维度、配置是否生效。
+空手也能用，只是第一块要徒手慢慢挖（石头约 7.5 秒），等它挖掉第一块后才会瞬间连锁。
 把 `debug` 改成 `true` 后能在日志里看到每次连锁的记录。
 
 **提示“不是假人”？**
@@ -203,7 +248,13 @@
 | `drop=true` / `false` | 掉落 27 个圆石 / 连锁部分不掉落 |
 | `durability=true` / `false` | 27 方块 = 27 耐久 / 0 损耗 |
 | `tool=true` + 拿锹挖石头 | 不触发连锁 |
-| 重启服务器 | 开关与形状从配置恢复 |
+| `only oak_log` + 镐挖石头 | 27 个石头一个没挖掉，镐耐久 0 损耗（被白名单拦住） |
+| `only oak_log` + 斧砍原木 | 27 个原木全部连锁消失 |
+| `except oak_log` + 镐挖石头 | 石头正常连锁，27 个全没 |
+| `except oak_log` + 斧砍原木 | 只按普通速度挖，不触发连锁（2 秒仅掉 3 个） |
+| `onlytag #minecraft:logs`（橡木+云杉混排） | 两种原木一起连锁清空 |
+| **空手**（无任何工具）挖 3×3×3 泥土 | 3 秒内 27 个全部连锁消失 |
+| 重启服务器 | 开关、形状、方块限制从配置恢复 |
 
 ## 自行构建
 
@@ -216,7 +267,7 @@
 
 ## 下载
 
-
+- GitHub Releases：<https://github.com/tttqfs/fakeultimine/releases>
 - Modrinth：<https://modrinth.com/mod/fakeplayer-ultimine>
 - MC百科：<待审核>
 - 夸克网盘：<https://pan.quark.cn/s/50afbd4aa709>

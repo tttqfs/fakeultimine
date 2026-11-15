@@ -17,6 +17,12 @@ public final class BotSettings {
 	public Boolean damageTool;
 	public Boolean requireCorrectTool;
 
+	/** 方块过滤模式：off / only / except，见 {@link BlockFilter.Mode}。 */
+	public String filterMode = "off";
+
+	/** 方块过滤列表，元素形如 minecraft:oak_log 或 #minecraft:logs。 */
+	public java.util.List<String> filterBlocks = new java.util.ArrayList<>();
+
 	public ShapeType shapeType() {
 		ShapeType type = ShapeType.byId(shape);
 		return type != null ? type : ShapeType.byId(FakeUltimine.config().defaultShape);
@@ -40,6 +46,15 @@ public final class BotSettings {
 		return requireCorrectTool != null ? requireCorrectTool : FakeUltimine.config().requireCorrectTool;
 	}
 
+	/** 当前的方块过滤器。 */
+	public BlockFilter filter() {
+		return BlockFilter.of(this);
+	}
+
+	public boolean hasFilter() {
+		return !filter().isEmpty();
+	}
+
 	public void sanitize() {
 		if (shape == null) {
 			shape = "";
@@ -52,6 +67,17 @@ public final class BotSettings {
 		}
 		if (maxBlocks > 4096) {
 			maxBlocks = 4096;
+		}
+		filterMode = BlockFilter.Mode.byId(filterMode).id();
+		if (filterBlocks == null) {
+			filterBlocks = new java.util.ArrayList<>();
+		}
+		filterBlocks.removeIf(entry -> BlockFilter.canonicalize(entry) == null);
+		if (filterBlocks.size() > 64) {
+			filterBlocks = new java.util.ArrayList<>(filterBlocks.subList(0, 64));
+		}
+		if (filterBlocks.isEmpty()) {
+			filterMode = "off";
 		}
 	}
 }

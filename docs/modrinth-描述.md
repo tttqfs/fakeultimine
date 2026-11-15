@@ -14,7 +14,11 @@ and let your quarry bot clear 3×3 tunnels without a client mod.
 ## Features
 
 - Per-bot toggle: only bots you enable will chain-break. Real players keep using FTB Ultimine.
+- **Block filter (only / except)**: restrict a bot to specific blocks (e.g. only oak logs — it won't even
+  mine anything else), or protect blocks from being chain-broken. Supports block ids and tags (`#minecraft:logs`).
 - 7 shapes: `cube3`, `cube5`, `plane3`, `plane5`, `tunnel`, `line`, `vein` (connected ore veins).
+- **Works with empty hands**: a bot with no tool still chain-breaks (the first block just takes as long
+  as mining it by hand). Set `/ful tool <bot> true` if you want to require a proper tool.
 - Everything configurable in game: shape, max blocks, drops, tool durability, correct-tool requirement.
 - Settings persist per bot name in `config/fakeultimine.json` (survives restarts / respawns).
 - Lag guards: per-break cap, per-bot cooldown, global per-tick budget, world border / height checks.
@@ -55,6 +59,11 @@ Optional: FTB Ultimine (its block exclusion tag is then respected automatically)
 | `/ful list` | list enabled bots |
 | `/ful status [bot]` | show global or per-bot settings |
 | `/ful shape <bot> <shape>` | choose the chain shape |
+| `/ful only <bot> <block>` | **only chain-break this block** (and stop the bot from mining anything else) |
+| `/ful except <bot> <block>` | chain-break everything **except** this block |
+| `/ful onlytag <bot> <tag>` | same as `only`, using a block tag (`minecraft:logs`) |
+| `/ful excepttag <bot> <tag>` | same as `except`, using a block tag |
+| `/ful filter <bot> list\|clear` | show / clear the block filter |
 | `/ful max <bot> <1-4096>` | max blocks per break |
 | `/ful drop <bot> <true\|false>` | drop items from chain-broken blocks |
 | `/ful durability <bot> <true\|false>` | consume tool durability or not |
@@ -108,6 +117,8 @@ The direction is taken from the bot's look vector.
 ## 功能
 
 - 按假人单独开关：只有被 `/fakeultimine on` 的假人才会连锁，真实玩家照旧用 Ultimine 的按键。
+- 方块过滤（only / except）：让假人只挖指定方块（如只砍橡木原木，别的方块连挖都不挖），
+  或反过来保护某些方块不参与连锁；支持方块 id 与标签（`minecraft:logs`）。
 - 7 种形状：立方体、平面、隧道、直线、连通矿脉。
 - 全部可指令调节：形状、上限、掉落、耐久、是否要求正确工具。
 - 设置按假人名字保存在 `config/fakeultimine.json`，重启 / 重新 spawn 都不丢。

@@ -8,6 +8,8 @@
 · 假人挖方块时，自动把周围同类方块一起挖掉，形状可选。
 · 支持 7 种形状：3×3×3 立方体、5×5×5 立方体、3×3 平面、5×5 平面、3×3 隧道、1×1 直线、同类连通矿脉。
 · 每个假人单独开关，可分别设置形状、单次上限、是否掉落、是否消耗耐久、是否要求正确工具。
+· 方块过滤：可让假人只挖指定方块（如只砍橡木原木，其它方块连挖都不挖），也可反过来保护某些方块不参与连锁；
+  支持方块 id 与方块标签（如 minecraft:logs）。
 · 设置按假人名字保存在 config/fakeultimine.json，重启服务器、假人重新上线都不会丢。
 · 装了 FTB Ultimine 时，自动遵守它的 ftbultimine:excluded_blocks 方块标签。
 · 自带黑名单标签 fakeultimine:blacklist，默认不连锁基岩、屏障、命令方块、刷怪笼等。
@@ -29,6 +31,10 @@
 /fakeultimine drop <假人> <true|false>       连锁是否掉落物品
 /fakeultimine durability <假人> <true|false> 是否消耗工具耐久
 /fakeultimine tool <假人> <true|false>       是否要求手持正确工具
+/fakeultimine only <假人> <方块>     只挖、只连锁这个方块（如 minecraft:oak_log）
+/fakeultimine except <假人> <方块>   除这个方块外都能连锁
+/fakeultimine onlytag|excepttag <假人> <标签>  同上，但用方块标签（如 minecraft:logs）
+/fakeultimine filter <假人> list|clear        查看 / 取消方块限制
 /fakeultimine shapes                查看所有形状
 /fakeultimine reload                重载配置文件
 /fakeultimine prune                 清理已关闭的假人记录
@@ -42,6 +48,7 @@
 
 【注意事项】
 · 只连锁同一种方块，不会误伤旁边的矿石或木头。
+· 假人空手也能连锁，只是第一块要徒手慢慢挖；工具挖到一半断了才会停止。
 · 原方块的掉落、经验、工具消耗由原版处理；关闭掉落后只影响连锁出来的那部分方块。
 · 单次上限 64、冷却 4 刻、全服每刻最多 512 格的默认值已比较保守；假人多时建议把冷却调大。
 · 假人需要在线才能用指令指定（指令参数是实体选择器）。
