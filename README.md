@@ -217,7 +217,7 @@
 
 ## 下载
 
-- GitHub Releases：<https://github.com/TTTQFS/fakeultimine/releases>
+
 - Modrinth：<https://modrinth.com/mod/fakeultimine>
 - MC百科：<https://www.mcmod.cn/class/XXXX.html>
 - 夸克网盘：<https://pan.quark.cn/s/50afbd4aa709>
