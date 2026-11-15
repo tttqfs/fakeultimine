@@ -8,7 +8,7 @@
 [![Version](https://img.shields.io/badge/Version-1.0.0-3fd0ff)](CHANGELOG.md)
 
 让**地毯（Carpet）/ GCA 假人**在挖方块时像 [FTB Ultimine](https://modrinth.com/mod/ftb-ultimine) 一样连锁破坏周围同类方块，
-用一条指令开关，服务端装上即可，客户端不需要装。
+用一条指令开关
 
 ```mcfunction
 /player Steve spawn
