@@ -70,7 +70,8 @@
 [FakePlayerUltimine] 假人连锁破坏 v1.0.0 已加载（carpet: true, gca: true, ftbultimine: false）
 ```
 
-> 单人游戏把 jar 放进整合包的 `mods/` 即可（集成服同样生效）；专用服务器只装服务端，客户端无需安装。
+
+
 
 ## 快速上手
 
