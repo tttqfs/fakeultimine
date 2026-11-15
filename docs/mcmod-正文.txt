@@ -16,9 +16,9 @@
 【安装方法】
 1、安装 Minecraft 1.21.1 对应的 Fabric Loader（Java 21）；
 2、安装 Fabric API（0.100 及以上版本）；
-3、将 fakeultimine-1.0.0.jar 放入 mods 文件夹；
+3、将 fakeultimine-1.1.0.jar 放入 mods 文件夹；
 4、安装 Carpet（地毯）或 GCA（gugle-carpet-addition），用于生成假人；
-5、启动游戏或服务器，日志出现「假人连锁破坏 v1.0.0 已加载」即安装成功。
+5、启动游戏或服务器，日志出现「假人连锁破坏 v1.1.0 已加载」即安装成功。
 
 【快速上手】
 /player Steve spawn

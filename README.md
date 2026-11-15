@@ -5,7 +5,7 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-3fb950)](https://www.minecraft.net/)
 [![Fabric](https://img.shields.io/badge/Loader-Fabric-dbdbb1)](https://fabricmc.net/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.0.0-3fd0ff)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.1.0-3fd0ff)](CHANGELOG.md)
 
 让**地毯（Carpet）/ GCA 假人**在挖方块时像 [FTB Ultimine](https://modrinth.com/mod/ftb-ultimine) 一样连锁破坏周围同类方块，
 用一条指令开关
@@ -67,7 +67,7 @@
 3. 启动游戏或服务器，日志出现下面这行即成功：
 
 ```
-[FakePlayerUltimine] 假人连锁破坏 v1.0.0 已加载（carpet: true, gca: true, ftbultimine: false）
+[FakePlayerUltimine] 假人连锁破坏 v1.1.0 已加载（carpet: true, gca: true, ftbultimine: false）
 ```
 
 > 单人游戏把 jar 放进整合包的 `mods/` 即可（集成服同样生效）；专用服务器只装服务端，客户端无需安装。
@@ -262,7 +262,7 @@
 
 ```bash
 ./gradlew build
-# 产物：build/libs/fakeultimine-1.0.0.jar
+# 产物：build/libs/fakeultimine-1.1.0.jar
 ```
 
 ## 下载
@@ -276,6 +276,7 @@
 
 | 模组版本 | Minecraft | 说明 |
 | --- | --- | --- |
+| 1.1.0 | 1.21.1 | 新增方块过滤（only/except）与空手连锁 |
 | 1.0.0 | 1.21.1 | 首个版本 |
 
 ## English
