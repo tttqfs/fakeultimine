@@ -62,7 +62,7 @@
 
 ## 安装
 
-1. 安装 Fabric Loader（1.21.1）与 Fabric API。
+1. 安装 Fabric Loader（1.21.1）与 Fabric API。（确保全部前置安装成功）
 2. 把本模组的 jar 放进 `mods/`。
 
 
