@@ -66,9 +66,7 @@
 2. 把本模组的 jar 放进 `mods/`。
 3. 启动游戏或服务器，日志出现下面这行即成功：
 
-```
-[FakePlayerUltimine] 假人连锁破坏 v1.0.0 已加载（carpet: true, gca: true, ftbultimine: false）
-```
+
 
 
 
