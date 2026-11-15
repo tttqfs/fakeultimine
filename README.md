@@ -219,8 +219,8 @@
 ## 下载
 
 
-- Modrinth：<https://modrinth.com/mod/fakeultimine>
-- MC百科：<https://www.mcmod.cn/class/XXXX.html>
+- Modrinth：<https://modrinth.com/mod/fakeplayer-ultimine>
+- MC百科：<待审核>
 - 夸克网盘：<https://pan.quark.cn/s/50afbd4aa709>
 
 ## 常见版本
